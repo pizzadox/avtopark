@@ -1,0 +1,165 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  pin       String   // PIN-код для авторизации
+  groupId   String?
+  avatar    String?  // URL аватара или эмодзи
+  isAdmin   Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  group     UserGroup?  @relation(fields: [groupId], references: [id])
+}
+
+model UserGroup {
+  id          String   @id @default(cuid())
+  name        String
+  permissions Json?    // {"canViewVehicles": true, "canAddRepairs": true, ...}
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  users       User[]
+}
+
+model Vehicle {
+  id            String   @id @default(cuid())
+  brand         String   // Марка
+  regNumber     String   @unique // Рег. № (State registration number)
+  ownerId       String?  // Связь с владельцем
+  tenantId      String?  // Связь с арендатором
+  owner         String   // Собственник (Owner) - denormalized
+  tenant        String?  // Арендатор (Tenant) - denormalized
+  hasGlonass    Boolean  @default(false) // Наличие ЭРО ГЛОНАСС
+  vehicleTypeId String?  // Связь с типом транспорта
+  vehicleType   String   // Тип транспорта (Vehicle type) - denormalized
+  vin           String?  // VIN number
+  mileage       String?  // Малек (Mileage code)
+  techInspection String? // Тех.Осмотр (Technical inspection date)
+  ptsImage      String?  // Фото ПТС (PTS image path)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  repairs       Repair[]
+  history       VehicleHistory[]
+  
+  ownerRel      Owner?      @relation(fields: [ownerId], references: [id])
+  tenantRel     Tenant?     @relation(fields: [tenantId], references: [id])
+  vehicleTypeRel VehicleType? @relation(fields: [vehicleTypeId], references: [id])
+}
+
+model Owner {
+  id        String   @id @default(cuid())
+  name      String   @unique // Название владельца
+  phone     String?  // Телефон
+  address   String?  // Адрес
+  notes     String?  // Примечания
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  vehicles  Vehicle[]
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String   @unique // Название арендатора
+  phone     String?  // Телефон
+  address   String?  // Адрес
+  notes     String?  // Примечания
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  vehicles  Vehicle[]
+}
+
+model VehicleType {
+  id        String   @id @default(cuid())
+  name      String   @unique // Название типа
+  icon      String?  // Эмодзи или иконка
+  sortOrder Int      @default(0) // Порядок сортировки
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  vehicles  Vehicle[]
+}
+
+model VehicleHistory {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  action      String   // Тип действия: created, updated, repair_added, repair_completed, etc.
+  field       String?  // Поле, которое было изменено
+  oldValue    String?  // Старое значение
+  newValue    String?  // Новое значение
+  description String?  // Описание действия
+  createdAt   DateTime @default(now())
+  
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+}
+
+model Repair {
+  id              String    @id @default(cuid())
+  entryDate       DateTime  // Дата Заезда (Entry date)
+  exitDate        DateTime? // Выезд из ремзоны (Exit date)
+  vehicleId       String    // Link to vehicle
+  regNumber       String    // Гос. номер (State number - denormalized for quick access)
+  vehicleInfo     String?   // Инфа о единице (Unit info)
+  malfunction     String    // Инфа о неисправности (Malfunction info)
+  welding         Boolean   @default(false) // Сварочные работы
+  lathe           Boolean   @default(false) // Токарные работы
+  repair          Boolean   @default(false) // Ремонт
+  diagnostics     Boolean   @default(false) // Диагностика
+  defectation     Boolean   @default(false) // Дефектовка
+  spareParts      Boolean   @default(false) // Запчасти
+  downtimeDays    Int       @default(0) // Простой дни
+  downtimeHours   Int       @default(0) // Простой часы
+  downtimeMinutes Int       @default(0) // Простой минуты
+  priority        String    @default("Обычный") // Приоритет
+  workDescription String?   // Описание работ
+  sparePartsInfo  String?   // Инфа о запчастях
+  statusId        String?   // Связь со статусом
+  status          String    @default("Не выполнено") // Статус - denormalized
+  mileage         String?   // Пробег
+  notes           String?   // Примечания
+  masterId        String?   // Мастер, выполняющий ремонт
+  masterName      String?   // Имя мастера - denormalized
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  vehicle         Vehicle   @relation(fields: [vehicleId], references: [id])
+  statusRel       RepairStatus? @relation(fields: [statusId], references: [id])
+}
+
+model RepairStatus {
+  id          String   @id @default(cuid())
+  name        String   @unique // Название статуса
+  color       String   @default("#gray") // Цвет для отображения
+  icon        String?  // Эмодзи или иконка
+  sortOrder   Int      @default(0) // Порядок сортировки
+  isDefault   Boolean  @default(false) // Статус по умолчанию
+  isCompleted Boolean  @default(false) // Статус завершения
+  isActive    Boolean  @default(true) // Активен ли статус
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  repairs     Repair[]
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
