@@ -37,6 +37,7 @@ import { useToast } from '@/hooks/use-toast'
 interface UserCardDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onOpenSettings?: () => void
 }
 
 interface UserItem {
@@ -81,7 +82,7 @@ const AVAILABLE_PERMISSIONS = [
   { key: 'canImport', label: 'Импорт данных' },
 ]
 
-export function UserCardDialog({ open, onOpenChange }: UserCardDialogProps) {
+export function UserCardDialog({ open, onOpenChange, onOpenSettings }: UserCardDialogProps) {
   const { user, logout, isAdmin } = useUser()
   const { toast } = useToast()
   
@@ -514,6 +515,16 @@ export function UserCardDialog({ open, onOpenChange }: UserCardDialogProps) {
                   </div>
                 </CardContent>
               </Card>
+
+              {isAdmin && onOpenSettings && (
+                <Button variant="outline" onClick={() => {
+                  onOpenSettings()
+                  onOpenChange(false)
+                }} className="w-full gap-2">
+                  <Settings className="h-4 w-4" />
+                  Управление данными
+                </Button>
+              )}
 
               <Button variant="destructive" onClick={handleLogout} className="w-full gap-2">
                 <LogOut className="h-4 w-4" />

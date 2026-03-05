@@ -1725,7 +1725,14 @@ function MainApp() {
       />
 
       {/* User Card Dialog */}
-      <UserCardDialog open={isUserCardOpen} onOpenChange={setIsUserCardOpen} />
+      <UserCardDialog 
+        open={isUserCardOpen} 
+        onOpenChange={setIsUserCardOpen} 
+        onOpenSettings={() => {
+          setIsUserCardOpen(false)
+          setIsDataManagementOpen(true)
+        }}
+      />
       
       {/* Data Management Dialog */}
       <DataManagementDialog open={isDataManagementOpen} onOpenChange={setIsDataManagementOpen} />
